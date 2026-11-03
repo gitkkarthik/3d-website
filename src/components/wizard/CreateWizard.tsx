@@ -154,10 +154,30 @@ export function CreateWizard({
     return { unit: variant.pricePaise, options, shipping, total: subtotal + shipping };
   }, [variant, pose, base, settings]);
 
-  const setPet = (patch: Partial<PetState>) => setS((x) => ({ ...x, pet: { ...x.pet, ...patch } }));
-  const setStory = (patch: Partial<StoryAnswers>) => setS((x) => ({ ...x, story: { ...x.story, ...patch } }));
-  const setPers = (patch: Partial<PersonaliseState>) => setS((x) => ({ ...x, personalise: { ...x.personalise, ...patch } }));
-  const setDel = (patch: Partial<DeliveryState>) => setS((x) => ({ ...x, delivery: { ...x.delivery, ...patch } }));
+  // Errors disappear as soon as the customer touches the field they belong to.
+  const clearErrors = (keys: string[]) =>
+    setErrors((e) => {
+      if (!keys.some((k) => k in e)) return e;
+      const n = { ...e };
+      for (const k of keys) delete n[k];
+      return n;
+    });
+  const setPet = (patch: Partial<PetState>) => {
+    clearErrors(Object.keys(patch));
+    setS((x) => ({ ...x, pet: { ...x.pet, ...patch } }));
+  };
+  const setStory = (patch: Partial<StoryAnswers>) => {
+    clearErrors(Object.keys(patch));
+    setS((x) => ({ ...x, story: { ...x.story, ...patch } }));
+  };
+  const setPers = (patch: Partial<PersonaliseState>) => {
+    clearErrors([...Object.keys(patch), ...("productSlug" in patch ? ["productSlug"] : [])]);
+    setS((x) => ({ ...x, personalise: { ...x.personalise, ...patch } }));
+  };
+  const setDel = (patch: Partial<DeliveryState>) => {
+    clearErrors(Object.keys(patch));
+    setS((x) => ({ ...x, delivery: { ...x.delivery, ...patch } }));
+  };
 
   const name = s.pet.petName.trim() || "your pet";
   const cover = s.pet.photos[0] ? (s.pet.photos[0].preview ?? `/api/files/${s.pet.photos[0].id}?v=thumb`) : undefined;
@@ -271,7 +291,7 @@ export function CreateWizard({
   const memorial = product?.isMemorial;
 
   return (
-    <div ref={topRef} className="mx-auto max-w-7xl scroll-mt-16 px-4 pb-28 pt-4 sm:px-6 lg:px-8">
+    <div ref={topRef} className="mx-auto max-w-7xl scroll-mt-16 px-4 pb-10 pt-4 sm:px-6 lg:px-8 lg:pb-28">
       {/* Progress */}
       <nav aria-label="Progress" className="sticky top-16 z-20 -mx-4 bg-ivory/95 px-4 py-3 backdrop-blur sm:mx-0 sm:px-0">
         <ol className="flex items-center gap-1.5">
@@ -363,7 +383,10 @@ export function CreateWizard({
               <div className="mt-10">
                 <PhotoUploader
                   value={s.pet.photos}
-                  onChange={(next) => setS((x) => ({ ...x, pet: { ...x.pet, photos: typeof next === "function" ? next(x.pet.photos) : next } }))}
+                  onChange={(next) => {
+                    clearErrors(["photoIds"]);
+                    setS((x) => ({ ...x, pet: { ...x.pet, photos: typeof next === "function" ? next(x.pet.photos) : next } }));
+                  }}
                   min={3}
                   max={5}
                   label={`Photos of ${name}`}
@@ -500,7 +523,10 @@ export function CreateWizard({
                   <PhotoUploader
                     id="owner-photos"
                     value={s.personalise.ownerPhotos}
-                    onChange={(next) => setS((x) => ({ ...x, personalise: { ...x.personalise, ownerPhotos: typeof next === "function" ? next(x.personalise.ownerPhotos) : next } }))}
+                    onChange={(next) => {
+                      clearErrors(["ownerPhotoIds"]);
+                      setS((x) => ({ ...x, personalise: { ...x.personalise, ownerPhotos: typeof next === "function" ? next(x.personalise.ownerPhotos) : next } }));
+                    }}
                     min={1}
                     max={3}
                     label="Photos of you (or the people to include)"
@@ -708,32 +734,38 @@ export function CreateWizard({
             </section>
           )}
 
-          {/* Navigation */}
-          <div className="mt-12 flex flex-col-reverse gap-3 border-t border-line pt-6 sm:flex-row sm:items-center sm:justify-between">
-            {s.step > 0 ? (
-              <button type="button" onClick={() => go(s.step - 1)} className="btn btn-ghost">
-                ← Back
-              </button>
-            ) : (
-              <span />
+          {/* Navigation: a sticky action bar on phones, inline on desktop */}
+          <div className="sticky bottom-0 z-30 -mx-4 mt-10 border-t border-line bg-ivory/95 px-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3 backdrop-blur sm:-mx-6 sm:px-6 lg:static lg:mx-0 lg:mt-12 lg:bg-transparent lg:px-0 lg:pb-0 lg:pt-6 lg:backdrop-blur-none">
+            {s.step === 4 && submitError && (
+              <p className="mb-2 text-sm text-[#a3402c] lg:text-right" role="alert">
+                {submitError}
+              </p>
             )}
-            {s.step < 4 ? (
-              <button type="button" onClick={next} className="btn btn-primary sm:min-w-56">
-                {s.step === 1 && !Object.values(s.story).some((v) => v?.trim()) ? "Skip for now" : "Continue"} →
-              </button>
-            ) : (
-              <div className="flex flex-col items-stretch gap-2 sm:items-end">
-                {submitError && (
-                  <p className="text-sm text-[#a3402c]" role="alert">
-                    {submitError}
-                  </p>
-                )}
-                <button type="button" onClick={submit} disabled={submitting || !signedIn} className="btn btn-clay h-13 text-base sm:min-w-64">
+            <div className="flex items-center gap-3 lg:justify-between">
+              {s.step > 0 ? (
+                <button type="button" onClick={() => go(s.step - 1)} className="btn btn-ghost !px-4 lg:!px-6" aria-label="Back">
+                  ←<span className="hidden lg:inline"> Back</span>
+                </button>
+              ) : (
+                <span className="hidden lg:block" />
+              )}
+              {price && s.step >= 2 && s.step < 4 && (
+                <span className="min-w-0 text-xs leading-tight text-ink-mute lg:hidden">
+                  Total
+                  <span className="block font-display text-lg text-ink">{formatINR(price.total)}</span>
+                </span>
+              )}
+              {s.step < 4 ? (
+                <button type="button" onClick={next} className="btn btn-primary flex-1 lg:min-w-56 lg:flex-none">
+                  {s.step === 1 && !Object.values(s.story).some((v) => v?.trim()) ? "Skip for now" : "Continue"} →
+                </button>
+              ) : (
+                <button type="button" onClick={submit} disabled={submitting || !signedIn} className="btn btn-clay h-13 flex-1 text-base lg:min-w-64 lg:flex-none">
                   {submitting ? "Placing your order…" : price ? `Place order · ${formatINR(price.total)}` : "Place order"}
                 </button>
-                <p className="text-xs text-ink-mute">{signedIn ? "You'll pay on the next screen." : "Create an account above to continue."}</p>
-              </div>
-            )}
+              )}
+            </div>
+            {s.step === 4 && <p className="mt-1.5 text-center text-xs text-ink-mute lg:text-right">{signedIn ? "You'll pay on the next screen." : "Create an account above to continue."}</p>}
           </div>
         </div>
 
@@ -777,18 +809,6 @@ export function CreateWizard({
         </aside>
       </div>
 
-      {/* Mobile price bar */}
-      {price && s.step >= 2 && (
-        <div className="fixed inset-x-0 bottom-0 z-30 border-t border-line bg-ivory/95 px-4 py-3 backdrop-blur lg:hidden">
-          <div className="flex items-center justify-between text-sm">
-            <span className="text-ink-soft">
-              {product?.name}
-              <span className="block text-xs text-ink-mute">{variant?.name}</span>
-            </span>
-            <span className="font-display text-xl">{formatINR(price.total)}</span>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

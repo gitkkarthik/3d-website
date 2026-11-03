@@ -12,3 +12,4 @@ test-results
 tests/e2e/screens
 next-env.d.ts
 *.tsbuildinfo
+tests/e2e/fixtures

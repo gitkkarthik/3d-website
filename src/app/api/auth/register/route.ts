@@ -8,7 +8,7 @@ import { fieldErrors, registerSchema } from "@/lib/validation";
 export async function POST(req: Request) {
   const bad = guardOrigin(req);
   if (bad) return bad;
-  if (!rateLimit(`register:${clientIp(req)}`, 10, 60 * 60 * 1000)) {
+  if (!rateLimit(`register:${clientIp(req)}`, 30, 60 * 60 * 1000)) {
     return json({ error: "Too many attempts. Please try again in a little while." }, 429);
   }
   try {
@@ -26,6 +26,10 @@ export async function POST(req: Request) {
     await createSession(user.id);
     return json({ user });
   } catch (e) {
+    // Two sign-ups racing for the same email: the unique index decides.
+    if ((e as { code?: string; cause?: { code?: string } })?.code === "23505" || (e as { cause?: { code?: string } })?.cause?.code === "23505") {
+      return json({ error: "An account with this email already exists. Please sign in instead.", fields: { email: "Already registered" } }, 409);
+    }
     return errorResponse(e);
   }
 }

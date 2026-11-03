@@ -76,6 +76,12 @@ export async function createOrder(userId: string, draftToken: string | null, inp
       .where(and(inArray(schema.uploads.id, allPhotoIds), eq(schema.uploads.kind, "PET_PHOTO"), isNull(schema.uploads.orderId), ownership))
       .for("update");
     if (photos.length !== allPhotoIds.length) {
+      // A concurrent submit with the same key may have just claimed these photos.
+      const dup = await tx
+        .select()
+        .from(schema.orders)
+        .where(and(eq(schema.orders.userId, userId), eq(schema.orders.idempotencyKey, input.idempotencyKey)));
+      if (dup[0]) return { order: dup[0], duplicate: true };
       throw new OrderError("Some photos couldn't be found. Please re-upload them and try again.");
     }
 
