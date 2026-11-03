@@ -1,0 +1,21 @@
+export type WizardOption = { id: string; label: string; description: string; priceDeltaPaise: number };
+export type WizardVariant = { id: string; name: string; description: string; pricePaise: number };
+export type WizardProduct = {
+  id: string;
+  slug: string;
+  name: string;
+  tagline: string;
+  includes: string[];
+  includesMemoryPage: boolean;
+  includesOwner: boolean;
+  isMemorial: boolean;
+  renderKey: string;
+  leadTimeMinDays: number;
+  leadTimeMaxDays: number;
+  fromPaise: number;
+  toPaise: number;
+  variants: WizardVariant[];
+  poses: WizardOption[];
+  bases: WizardOption[];
+};
+export type WizardSettings = { shippingFeePaise: number; freeShippingAbovePaise: number | null };

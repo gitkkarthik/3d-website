@@ -1,4 +1,14 @@
 node_modules
+.next
+out
 dist
 .DS_Store
 *.log
+.env
+.env.local
+storage/*
+!storage/.gitkeep
+test-results
+tests/e2e/screens
+next-env.d.ts
+*.tsbuildinfo
