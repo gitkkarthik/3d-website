@@ -21,6 +21,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
   const url = new URL(req.url);
   const variant = url.searchParams.get("v") ?? "display";
   const memorySlug = url.searchParams.get("m");
+  const qrToken = memorySlug ? null : url.searchParams.get("q");
 
   const [u] = await db.select().from(schema.uploads).where(eq(schema.uploads.id, id));
   if (!u) return notFound();
@@ -38,17 +39,22 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
     const draft = await getDraftToken(false);
     allowed = !!draft && safeEqual(draft, u.draftToken);
   }
-  if (!allowed && memorySlug && u.memoryPageId) {
-    const [page] = await db.select().from(schema.memoryPages).where(eq(schema.memoryPages.id, u.memoryPageId));
-    if (page && page.visibility === "LINK" && safeEqual(page.slug, memorySlug)) {
-      allowed = true;
-      shared = true;
-    }
-  }
-  // A memory page's profile photo may come from the order photos (kind PET_PHOTO).
-  if (!allowed && memorySlug) {
-    const [page] = await db.select().from(schema.memoryPages).where(eq(schema.memoryPages.slug, memorySlug));
-    if (page && page.visibility === "LINK" && page.profileUploadId === u.id) {
+  // Shared viewers: a memory page's private link (?m=slug, when link sharing is on) or the
+  // QR engraved on the keepsake (?q=token, while scanning is on). Either only unlocks files
+  // that belong to that page: its media, its profile photo, and the order's recorded sounds.
+  if (!allowed && (memorySlug || qrToken)) {
+    const [page] = await db
+      .select()
+      .from(schema.memoryPages)
+      .where(memorySlug ? eq(schema.memoryPages.slug, memorySlug) : eq(schema.memoryPages.qrToken, qrToken!));
+    const pageOpen =
+      !!page &&
+      (memorySlug
+        ? page.visibility === "LINK" && safeEqual(page.slug, memorySlug)
+        : page.qrEnabled && !!page.qrToken && safeEqual(page.qrToken, qrToken!));
+    const belongs =
+      !!page && (u.memoryPageId === page.id || page.profileUploadId === u.id || (u.kind === "PET_SOUND" && !!u.orderId && u.orderId === page.orderId));
+    if (pageOpen && belongs) {
       allowed = true;
       shared = true;
     }

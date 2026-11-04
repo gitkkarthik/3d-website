@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
-import { HeroKeepsake } from "@/components/home/HeroKeepsake";
+import { SoundHero } from "@/components/home/SoundHero";
+import { ListenScene, ScanScene } from "@/components/home/Scenes";
 import { MemoryPreview } from "@/components/home/MemoryPreview";
 import { EditionCard } from "@/components/site/EditionCard";
 import { Faq, faqJsonLd } from "@/components/site/Faq";
@@ -28,56 +29,73 @@ export default async function HomePage() {
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify([orgLd, faqJsonLd()]) }} />
 
-      {/* ───────────── Hero ───────────── */}
-      <section className="relative overflow-hidden">
-        <div className="mx-auto grid max-w-7xl items-center gap-10 px-4 pb-16 pt-6 sm:px-6 md:pt-10 lg:grid-cols-[1.05fr_1fr] lg:gap-16 lg:px-8 lg:pb-24">
-          <div className="animate-rise">
-            <p className="eyebrow">Personalised pet keepsakes · Made in India</p>
-            <h1 className="mt-5 text-[2.6rem] leading-[1.04] sm:text-6xl lg:text-[4.4rem]">
-              Your pet is <em className="italic-soft text-clay">one of a kind.</em> Their keepsake should be too.
-            </h1>
-            <p className="mt-6 max-w-xl text-lg leading-relaxed text-ink-soft">
-              We turn your favourite pet memories into personalised keepsakes you can hold forever.
-            </p>
-            <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-              <Link href="/create" className="btn btn-primary h-13 px-7 text-base">
-                Create your pet keepsake
-              </Link>
-              <Link href="/editions" className="btn btn-ghost h-13 px-7 text-base">
-                Explore our collections
-              </Link>
-            </div>
-            <ul className="mt-10 grid max-w-lg grid-cols-1 gap-3 text-sm text-ink-soft sm:grid-cols-3">
-              {["Sculpted from your photos", "You approve before we make", "Hand-painted & delivered"].map((t) => (
-                <li key={t} className="flex items-center gap-2">
-                  <svg width="16" height="16" viewBox="0 0 16 16" className="shrink-0 text-sage" aria-hidden>
-                    <path d="M3 8.5 6.5 12 13 4.5" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
-                  {t}
-                </li>
-              ))}
-            </ul>
-          </div>
-          <div className="animate-fade [animation-delay:200ms]">
-            <HeroKeepsake />
-          </div>
+      {/* ───────────── Hero: their sound, engraved ───────────── */}
+      <section className="relative -mt-16 overflow-hidden bg-night pt-16">
+        <div className="pointer-events-none absolute -left-40 top-20 h-96 w-96 rounded-full bg-clay/20 blur-[120px]" aria-hidden />
+        <div className="mx-auto max-w-7xl px-4 pb-16 pt-8 sm:px-6 md:pt-14 lg:px-8 lg:pb-24">
+          <SoundHero siteUrl={SITE.url} />
         </div>
       </section>
 
-      {/* ───────────── Manifesto ───────────── */}
-      <section className="bg-night text-ivory">
+      {/* ───────────── The insight ───────────── */}
+      <section>
         <div className="mx-auto max-w-5xl px-4 py-20 text-center sm:px-6 sm:py-28">
           <Reveal>
-            <p className="eyebrow !text-clay-soft">Why we exist</p>
-            <p className="mt-6 font-display text-[1.75rem] leading-[1.25] sm:text-[2.6rem]">
-              It&apos;s not the shape of their ears we&apos;re capturing.{" "}
-              <em className="italic-soft text-[#e7c3a5]">It&apos;s the way they wait for you at the door.</em>
+            <p className="eyebrow">Why sound</p>
+            <p className="mt-6 font-display text-[1.8rem] leading-[1.25] sm:text-[2.7rem]">
+              Your phone holds a thousand photos of them.{" "}
+              <em className="italic-soft text-clay">Almost no recordings.</em>
             </p>
-            <p className="mx-auto mt-8 max-w-2xl leading-relaxed text-[#cfc4b8]">
-              The figurine is what you hold. The memory is what you keep. So we start with the little things only you know:
-              the head tilt, the favourite sock, the spot on the sofa that&apos;s legally theirs.
+            <p className="mx-auto mt-8 max-w-2xl text-lg leading-relaxed text-ink-soft">
+              The jingle of a collar. The sigh when they finally settle. The sound they make only for you. Faces stay with us for years; sounds are the first thing we lose. So every Pawsome keepsake carries both: their likeness to hold, and their voice to hear again.
             </p>
           </Reveal>
+        </div>
+      </section>
+
+      {/* ───────────── Hold. Scan. Hear. ───────────── */}
+      <section className="bg-sand/50">
+        <div className="mx-auto max-w-7xl px-4 py-20 sm:px-6 sm:py-28 lg:px-8">
+          <h2 className="max-w-3xl text-4xl leading-tight sm:text-6xl">
+            Hold them. Scan them. <em className="italic-soft text-clay">Hear them.</em>
+          </h2>
+          <ol className="mt-14 grid gap-6 md:grid-cols-3">
+            <Reveal as="li" className="flex flex-col">
+              <div className="relative aspect-[4/5] overflow-hidden rounded-[1.75rem] bg-[radial-gradient(ellipse_at_50%_35%,#fbf5ec,#e6d8c4)]">
+                <Image src="/renders/hold.webp" alt="Illustrative render of a keepsake with an engraved waveform and QR code" fill sizes="(min-width:768px) 33vw, 100vw" className="object-contain p-4" />
+                <span className="render-tag absolute left-3 top-3">Illustrative</span>
+              </div>
+              <p className="mt-5 font-display text-3xl text-clay-soft">01</p>
+              <h3 className="mt-1 text-2xl">Hold them</h3>
+              <p className="mt-2 leading-relaxed text-ink-soft">A hand-painted miniature sculpted from your photos, with their name and the shape of their sound engraved into the base.</p>
+            </Reveal>
+            <Reveal as="li" delay={100} className="flex flex-col">
+              <ScanScene />
+              <p className="mt-5 font-display text-3xl text-clay-soft">02</p>
+              <h3 className="mt-1 text-2xl">Scan them</h3>
+              <p className="mt-2 leading-relaxed text-ink-soft">Point any phone camera at the engraved code. No app, no login, no subscription. It works for every guest, every year.</p>
+            </Reveal>
+            <Reveal as="li" delay={200} className="flex flex-col">
+              <ListenScene />
+              <p className="mt-5 font-display text-3xl text-clay-soft">03</p>
+              <h3 className="mt-1 text-2xl">Hear them</h3>
+              <p className="mt-2 leading-relaxed text-ink-soft">Their sound plays as their photos drift by, followed by their story, the videos you love and your words to them.</p>
+            </Reveal>
+          </ol>
+
+          <ul className="mt-16 grid gap-px overflow-hidden rounded-[1.5rem] bg-oat/70 sm:grid-cols-2 lg:grid-cols-4">
+            {[
+              ["No subscription. Ever.", "One price. The code on your keepsake never stops working because a plan lapsed."],
+              ["Download everything", "Your photos, recordings and story are yours. Export them whenever you like."],
+              ["Private unless you share", "Only people holding the keepsake, or your private link, can open it."],
+              ["Add to it for years", "New photos, a new voice note, a birthday. The page grows with them."],
+            ].map(([t, b]) => (
+              <li key={t} className="bg-ivory p-6">
+                <p className="font-display text-lg">{t}</p>
+                <p className="mt-1.5 text-sm leading-relaxed text-ink-soft">{b}</p>
+              </li>
+            ))}
+          </ul>
         </div>
       </section>
 
@@ -173,7 +191,7 @@ export default async function HomePage() {
               Some memories <em className="italic-soft">have a sound.</em>
             </h2>
             <p className="mt-6 max-w-lg leading-relaxed text-ink-soft">
-              The Forever, Together and Memorial editions come with a private memory page: their photos, the videos you
+              Every keepsake comes with a private memory page, the one its QR code opens: their photos, the videos you
               can&apos;t delete, the voice notes of their ridiculous little noises, and the stories behind them.
             </p>
             <ul className="mt-8 space-y-3 text-ink-soft">
@@ -247,18 +265,38 @@ export default async function HomePage() {
         </div>
       </section>
 
+      {/* ───────────── Beyond paws ───────────── */}
+      <section>
+        <div className="mx-auto max-w-4xl px-4 pb-20 text-center sm:px-6">
+          <Reveal>
+            <p className="eyebrow">Where this is going</p>
+            <p className="mt-5 font-display text-[1.6rem] leading-snug sm:text-[2.2rem]">
+              We&apos;re starting with the ones with paws.{" "}
+              <em className="italic-soft text-clay">But a grandmother&apos;s lullaby deserves keeping too.</em>
+            </p>
+            <p className="mx-auto mt-5 max-w-2xl text-ink-soft">
+              The same idea, a likeness to hold and a voice to hear again, works for anyone you love. If you&apos;d like us to make one for a person, tell us at{" "}
+              <a href="mailto:hello@pawsomememories.in?subject=Keepsake%20for%20a%20person" className="underline underline-offset-4">
+                hello@pawsomememories.in
+              </a>
+              . We&apos;re listening.
+            </p>
+          </Reveal>
+        </div>
+      </section>
+
       {/* ───────────── Final CTA ───────────── */}
       <section className="px-4 pb-20 sm:px-6 lg:px-8">
         <div className="relative mx-auto max-w-7xl overflow-hidden rounded-[2rem] bg-night px-6 py-16 text-center text-ivory sm:px-12 sm:py-24">
           <div className="pointer-events-none absolute -bottom-24 left-1/2 h-72 w-[42rem] -translate-x-1/2 rounded-full bg-clay/25 blur-3xl" aria-hidden />
           <p className="eyebrow relative !text-clay-soft">Five minutes, a few photos</p>
           <h2 className="relative mx-auto mt-5 max-w-3xl text-4xl leading-tight sm:text-6xl">
-            Tell us about them. <em className="italic-soft text-[#e7c3a5]">We&apos;ll take it from there.</em>
+            Before the sound fades, <em className="italic-soft text-[#e7c3a5]">let&apos;s keep it.</em>
           </h2>
           <Link href="/create" className="btn relative mt-10 h-13 bg-ivory px-8 text-base text-ink hover:bg-white">
             Create your pet keepsake
           </Link>
-          <p className="relative mt-5 text-sm text-[#bfb3a6]">You&apos;ll see and approve the design before we make anything.</p>
+          <p className="relative mt-5 text-sm text-[#bfb3a6]">A few photos, a voice note if you have one, five minutes. You approve the design before we make anything.</p>
         </div>
       </section>
     </>

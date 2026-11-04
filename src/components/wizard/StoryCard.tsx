@@ -1,6 +1,7 @@
 "use client";
 
 import type { StoryAnswers } from "@/lib/db/schema";
+import { Waveform } from "@/components/sound/Waveform";
 
 /**
  * The customer's own words, typeset like a keepsake card as they write.
@@ -14,6 +15,7 @@ export function StoryCard({
   cover,
   story,
   compact = false,
+  peaks,
 }: {
   name: string;
   animal: string;
@@ -22,6 +24,7 @@ export function StoryCard({
   cover?: string;
   story: StoryAnswers;
   compact?: boolean;
+  peaks?: number[];
 }) {
   const display = name.trim() || "Your pet";
   const lines: { label: string; text?: string }[] = [
@@ -54,6 +57,14 @@ export function StoryCard({
           </div>
         </div>
 
+        {peaks && peaks.length > 0 && (
+          <div className="mt-5 animate-fade">
+            <p className="text-[0.65rem] font-semibold uppercase tracking-[0.14em] text-clay">Their sound</p>
+            <div className="mt-1.5">
+              <Waveform peaks={peaks} progress={1} height={28} activeClass="fill-ink/70" label={`${display}'s sound`} />
+            </div>
+          </div>
+        )}
         <div className="mt-5 space-y-4">
           {lines.length === 0 ? (
             <p className="font-display text-[0.98rem] italic leading-relaxed text-ink-mute">

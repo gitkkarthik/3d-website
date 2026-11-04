@@ -10,6 +10,10 @@ This is a complete MVP: storefront, a 5-step customisation wizard with secure ph
 
 ---
 
+## The idea in one line
+
+A hand-painted miniature of your pet, with **their real sound engraved into the base**, and a QR code that plays it. Hold them, scan them, hear them. See `docs/research.md` for why.
+
 ## Stack
 
 | Concern | Choice |

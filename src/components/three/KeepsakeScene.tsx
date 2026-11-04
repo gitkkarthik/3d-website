@@ -4,6 +4,7 @@ import { Canvas, useThree } from "@react-three/fiber";
 import { ContactShadows, Environment, Lightformer, OrbitControls, RoundedBox } from "@react-three/drei";
 import { Suspense, useEffect, useMemo, useState } from "react";
 import * as THREE from "three";
+import QRCode from "qrcode";
 import { Figure, COATS, type FigureKey } from "./Figurines";
 
 import type { BaseStyle } from "./baseStyle";
@@ -39,7 +40,7 @@ function grainTexture(color: string) {
   return t;
 }
 
-function engravingTexture(name: string, line2: string, ink: string, fontReady: boolean) {
+function engravingTexture(name: string, line2: string, ink: string, fontReady: boolean, peaks?: number[] | null) {
   const c = document.createElement("canvas");
   c.width = 1024;
   c.height = 200;
@@ -48,19 +49,39 @@ function engravingTexture(name: string, line2: string, ink: string, fontReady: b
   g.fillStyle = ink;
   g.textAlign = "center";
   g.textBaseline = "middle";
-  const family = fontReady ? "'Fraunces Variable', Georgia, serif" : "Georgia, serif";
+  const serif = fontReady ? "'Fraunces Variable', Georgia, serif" : "Georgia, serif";
+  const sans = fontReady ? "'Instrument Sans Variable', Arial, sans-serif" : "Arial, sans-serif";
   const display = name.trim() || " ";
-  let size = 96;
-  g.font = `italic 500 ${size}px ${family}`;
-  while (g.measureText(display).width > 900 && size > 40) {
+  const hasWave = !!peaks && peaks.length > 0;
+  let size = hasWave ? (line2 ? 64 : 84) : 96;
+  g.font = `italic 500 ${size}px ${serif}`;
+  while (g.measureText(display).width > 900 && size > 34) {
     size -= 4;
-    g.font = `italic 500 ${size}px ${family}`;
+    g.font = `italic 500 ${size}px ${serif}`;
   }
-  g.fillText(display, 512, line2 ? 80 : 100);
+  const nameY = hasWave ? (line2 ? 40 : 56) : line2 ? 80 : 100;
+  g.fillText(display, 512, nameY);
   if (line2) {
-    g.font = `500 34px ${fontReady ? "'Instrument Sans Variable', Arial, sans-serif" : "Arial, sans-serif"}`;
-    g.letterSpacing = "6px";
-    g.fillText(line2.toUpperCase(), 512, 158);
+    g.font = `500 ${hasWave ? 24 : 34}px ${sans}`;
+    g.letterSpacing = hasWave ? "5px" : "6px";
+    g.fillText(line2.toUpperCase(), 512, hasWave ? 86 : 158);
+  }
+  if (hasWave) {
+    // Their sound, engraved: one bar per peak, centred on a line.
+    const w = 760;
+    const x0 = 512 - w / 2;
+    const cy = line2 ? 150 : 148;
+    const maxH = line2 ? 70 : 76;
+    const n = peaks!.length;
+    const step = w / n;
+    const bw = Math.max(2, step * 0.55);
+    for (let i = 0; i < n; i++) {
+      const h = Math.max(4, peaks![i] * maxH);
+      const x = x0 + i * step + (step - bw) / 2;
+      g.beginPath();
+      g.roundRect(x, cy - h / 2, bw, h, bw / 2);
+      g.fill();
+    }
   }
   const t = new THREE.CanvasTexture(c);
   t.colorSpace = THREE.SRGBColorSpace;
@@ -68,7 +89,27 @@ function engravingTexture(name: string, line2: string, ink: string, fontReady: b
   return t;
 }
 
-function Plinth({ style, engraving, line2 }: { style: BaseStyle; engraving: string; line2: string }) {
+function qrTexture(text: string, ink: string) {
+  const qr = QRCode.create(text, { errorCorrectionLevel: "M" });
+  const n = qr.modules.size;
+  const quiet = 2;
+  const px = 12;
+  const size = (n + quiet * 2) * px;
+  const c = document.createElement("canvas");
+  c.width = c.height = size;
+  const g = c.getContext("2d")!;
+  g.clearRect(0, 0, size, size);
+  g.fillStyle = ink;
+  for (let y = 0; y < n; y++)
+    for (let x = 0; x < n; x++) if (qr.modules.get(x, y)) g.fillRect((x + quiet) * px, (y + quiet) * px, px, px);
+  const t = new THREE.CanvasTexture(c);
+  t.colorSpace = THREE.SRGBColorSpace;
+  t.magFilter = THREE.NearestFilter;
+  t.anisotropy = 8;
+  return t;
+}
+
+function Plinth({ style, engraving, line2, peaks, qr }: { style: BaseStyle; engraving: string; line2: string; peaks?: number[] | null; qr?: string | null }) {
   const b = BASES[style];
   const [fontReady, setFontReady] = useState(false);
   useEffect(() => {
@@ -79,8 +120,12 @@ function Plinth({ style, engraving, line2 }: { style: BaseStyle; engraving: stri
     if (b.grain) m.map = grainTexture(b.color);
     return m;
   }, [style, b]);
-  const tex = useMemo(() => engravingTexture(engraving, line2, b.ink, fontReady), [engraving, line2, b.ink, fontReady]);
+  const peaksKey = peaks ? peaks.join(",") : "";
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const tex = useMemo(() => engravingTexture(engraving, line2, b.ink, fontReady, peaks), [engraving, line2, b.ink, fontReady, peaksKey]);
+  const qrTex = useMemo(() => (qr ? qrTexture(qr, b.ink) : null), [qr, b.ink]);
   useEffect(() => () => tex.dispose(), [tex]);
+  useEffect(() => () => qrTex?.dispose(), [qrTex]);
   return (
     <group position={[0, -0.25, 0]}>
       <RoundedBox args={[2.5, 0.5, 1.75]} radius={0.12} smoothness={6} material={mat} castShadow receiveShadow />
@@ -88,23 +133,29 @@ function Plinth({ style, engraving, line2 }: { style: BaseStyle; engraving: stri
         <planeGeometry args={[2.1, 0.41]} />
         <meshStandardMaterial map={tex} transparent roughness={0.8} polygonOffset polygonOffsetFactor={-2} />
       </mesh>
+      {qrTex && (
+        <mesh position={[0.9, 0.2503, 0.56]} rotation={[-Math.PI / 2, 0, 0]}>
+          <planeGeometry args={[0.38, 0.38]} />
+          <meshStandardMaterial map={qrTex} transparent roughness={0.8} polygonOffset polygonOffsetFactor={-2} />
+        </mesh>
+      )}
     </group>
   );
 }
 
 const LOW: FigureKey[] = ["dog-sleeping", "cat-loaf"];
 
-function Rig({ framing, figure }: { framing: "hero" | "card" | "wizard"; figure: FigureKey }) {
+function Rig({ framing, figure, stage }: { framing: "hero" | "card" | "wizard"; figure: FigureKey; stage: "light" | "dark" }) {
   const { camera, invalidate } = useThree();
   useEffect(() => {
     const low = LOW.includes(figure);
-    const dist = { hero: 8.6, card: 7.2, wizard: 7.6 }[framing] * (low ? 0.82 : 1);
+    const dist = { hero: stage === "dark" ? 7.0 : 8.6, card: 7.2, wizard: 7.6 }[framing] * (low ? 0.82 : 1);
     const dir = new THREE.Vector3(0.43, 0.3, 0.85).normalize();
     const target = new THREE.Vector3(0, low ? 0.3 : 0.72, 0);
     camera.position.copy(target.clone().add(dir.multiplyScalar(dist)));
     camera.lookAt(target);
     invalidate();
-  }, [camera, framing, figure, invalidate]);
+  }, [camera, framing, figure, stage, invalidate]);
   return null;
 }
 
@@ -120,6 +171,12 @@ export type KeepsakeSceneProps = {
   onReady?: () => void;
   preserveDrawingBuffer?: boolean;
   yaw?: number;
+  /** Real waveform peaks (0–1) to engrave on the front of the base. */
+  peaks?: number[] | null;
+  /** If set, a scannable QR code for this URL is engraved on top of the base. */
+  qr?: string | null;
+  /** Dark, spotlit stage for the homepage hero. */
+  stage?: "light" | "dark";
 };
 
 export default function KeepsakeScene({
@@ -134,6 +191,9 @@ export default function KeepsakeScene({
   onReady,
   preserveDrawingBuffer = false,
   yaw = 0,
+  peaks = null,
+  qr = null,
+  stage = "light",
 }: KeepsakeSceneProps) {
   return (
     <Canvas
@@ -151,8 +211,9 @@ export default function KeepsakeScene({
       style={{ touchAction: interactive ? "pan-y" : "auto" }}
       aria-hidden
     >
-      <Rig framing={framing} figure={figure} />
-      <ambientLight intensity={0.35} color="#fff4e6" />
+      <Rig framing={framing} figure={figure} stage={stage} />
+      <ambientLight intensity={stage === "dark" ? 0.16 : 0.35} color="#fff4e6" />
+      {stage === "dark" && <spotLight position={[0, 6, 2.5]} angle={0.45} penumbra={0.9} intensity={60} color="#ffd9b0" castShadow />}
       <directionalLight
         position={[3.5, 5, 4]}
         intensity={1.9}
@@ -175,10 +236,10 @@ export default function KeepsakeScene({
         </Environment>
       </Suspense>
       <group position={[0, 0.1, 0]} rotation={[0, yaw, 0]}>
-        <Plinth style={base} engraving={engraving} line2={line2} />
+        <Plinth style={base} engraving={engraving} line2={line2} peaks={peaks} qr={qr} />
         <Figure kind={figure} coat={coat ? COATS[coat] : undefined} />
       </group>
-      <ContactShadows position={[0, -0.16, 0]} opacity={0.45} scale={7} blur={2.6} far={2} color="#4a3a2c" />
+      <ContactShadows position={[0, -0.16, 0]} opacity={stage === "dark" ? 0.7 : 0.45} scale={7} blur={2.6} far={2} color={stage === "dark" ? "#000000" : "#4a3a2c"} />
       <OrbitControls
         enabled={interactive}
         enablePan={false}

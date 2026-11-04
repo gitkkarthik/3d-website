@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { PhotoUploader, type UploadedPhoto } from "./PhotoUploader";
 import { StoryCard } from "./StoryCard";
+import { SoundStep, type WizardSound } from "./SoundStep";
 import type { WizardProduct, WizardSettings } from "./types";
 import { AuthForm } from "@/components/auth/AuthForm";
 import LazyKeepsake from "@/components/three/LazyKeepsake";
@@ -30,7 +31,7 @@ const BREEDS = [
   "Mudhol Hound", "Indian Spitz", "Persian", "Indie cat", "Siamese", "Maine Coon", "British Shorthair", "Bengal", "Not sure",
 ];
 
-type PetState = { petName: string; animalType: string; breed: string; petAge: string; photos: UploadedPhoto[] };
+type PetState = { petName: string; animalType: string; breed: string; petAge: string; photos: UploadedPhoto[]; sounds: WizardSound[] };
 type PersonaliseState = {
   productSlug: string;
   variantId: string;
@@ -56,7 +57,7 @@ function newKey() {
 function initialState(edition?: string, name?: string): State {
   return {
     step: 0,
-    pet: { petName: name ?? "", animalType: "", breed: "", petAge: "", photos: [] },
+    pet: { petName: name ?? "", animalType: "", breed: "", petAge: "", photos: [], sounds: [] },
     story: {},
     personalise: {
       productSlug: edition ?? "",
@@ -116,7 +117,7 @@ export function CreateWizard({
         setS((cur) => ({
           ...cur,
           ...saved,
-          pet: { ...cur.pet, ...saved.pet, petName: saved.pet.petName || cur.pet.petName },
+          pet: { ...cur.pet, ...saved.pet, sounds: saved.pet.sounds ?? [], petName: saved.pet.petName || cur.pet.petName },
           personalise: {
             ...cur.personalise,
             ...saved.personalise,
@@ -134,9 +135,10 @@ export function CreateWizard({
     if (!loaded) return;
     try {
       const strip = (ps: UploadedPhoto[]) => ps.map(({ id }) => ({ id }));
+      const stripSounds = (ss: WizardSound[]) => ss.map(({ src: _src, ...rest }) => rest);
       localStorage.setItem(
         STORAGE_KEY,
-        JSON.stringify({ ...s, pet: { ...s.pet, photos: strip(s.pet.photos) }, personalise: { ...s.personalise, ownerPhotos: strip(s.personalise.ownerPhotos) } }),
+        JSON.stringify({ ...s, pet: { ...s.pet, photos: strip(s.pet.photos), sounds: stripSounds(s.pet.sounds) }, personalise: { ...s.personalise, ownerPhotos: strip(s.personalise.ownerPhotos) } }),
       );
     } catch {}
   }, [s, loaded]);
@@ -256,7 +258,7 @@ export function CreateWizard({
     const p = s.personalise;
     const payload = {
       idempotencyKey: s.idempotencyKey,
-      pet: { petName: s.pet.petName, animalType: s.pet.animalType, breed: s.pet.breed, petAge: s.pet.petAge || undefined, photoIds: s.pet.photos.map((x) => x.id) },
+      pet: { petName: s.pet.petName, animalType: s.pet.animalType, breed: s.pet.breed, petAge: s.pet.petAge || undefined, photoIds: s.pet.photos.map((x) => x.id), soundIds: s.pet.sounds.map((x) => x.id) },
       story: s.story,
       personalise: {
         productSlug: p.productSlug,
@@ -426,7 +428,10 @@ export function CreateWizard({
               <p className="mt-3 max-w-xl text-ink-soft">
                 Every answer is optional, and every answer helps. These are the details that make a figurine feel like {name}, not just a {s.pet.breed.trim() || "pet"}.
               </p>
-              <div className="mt-8 space-y-4">
+              <div className="mt-8">
+                <SoundStep name={s.pet.petName.trim() || "them"} sounds={s.pet.sounds} onChange={(fn) => setS((x) => ({ ...x, pet: { ...x.pet, sounds: fn(x.pet.sounds) } }))} />
+              </div>
+              <div className="mt-4 space-y-4">
                 <StoryQ id="smile" q={`What's one thing ${name} does that always makes you smile?`} placeholder="She sneezes every time she's excited to see us…" value={s.story.smile} onChange={(v) => setStory({ smile: v })} rows={3} max={600} error={errors.smile} />
                 <StoryQ id="toy" q="What's their favourite toy?" placeholder="A one-eared green crocodile called Mr Croc" value={s.story.toy} onChange={(v) => setStory({ toy: v })} max={200} single error={errors.toy} />
                 <StoryQ id="sleeping" q="What's their favourite sleeping position?" placeholder="On his back, all four paws in the air, on my pillow" value={s.story.sleeping} onChange={(v) => setStory({ sleeping: v })} max={300} single error={errors.sleeping} />
@@ -436,7 +441,7 @@ export function CreateWizard({
               </div>
               <div className="mt-8 lg:hidden">
                 <p className="mb-3 text-sm font-medium text-ink-soft">Their story so far</p>
-                <StoryCard name={s.pet.petName} animal={s.pet.animalType} breed={s.pet.breed} age={s.pet.petAge} cover={cover} story={s.story} compact />
+                <StoryCard name={s.pet.petName} animal={s.pet.animalType} breed={s.pet.breed} age={s.pet.petAge} cover={cover} story={s.story} peaks={s.pet.sounds[0]?.peaks} compact />
               </div>
             </section>
           )}
@@ -576,6 +581,8 @@ export function CreateWizard({
                         base={baseStyleFromLabel(base?.label ?? product.bases[0]?.label)}
                         engraving={s.personalise.engravedName || s.pet.petName || "Name"}
                         line2={s.personalise.importantDate && s.personalise.importantDate !== "none" ? formatDateShort(s.personalise.importantDate) : ""}
+                        peaks={s.pet.sounds[0]?.peaks ?? null}
+                        qr={s.pet.sounds.length ? "https://pawsome.in/memory-pages" : null}
                         framing="wizard"
                         autoRotate={false}
                       />
@@ -583,6 +590,9 @@ export function CreateWizard({
                     </div>
                     <p className="mt-2 text-xs leading-relaxed text-ink-mute">
                       A sketch of the base and engraving only. This figure is a placeholder, not {name}. Our artist sculpts {name} from your photos and sends you the real design to approve.
+                      {s.pet.sounds.length > 0
+                        ? ` The waveform is ${name}'s real sound; your keepsake gets its own private QR code.`
+                        : ` Add ${name}'s sound in step 2 to see it engraved here.`}
                     </p>
                   </div>
                 </div>
@@ -657,6 +667,15 @@ export function CreateWizard({
                       <img key={p.id} src={p.preview ?? `/api/files/${p.id}?v=thumb`} alt="" className="aspect-square w-full rounded-lg object-cover" />
                     ))}
                   </div>
+                </Summary>
+                <Summary title={s.pet.sounds.length ? `Their sound (${s.pet.sounds.length})` : "Their sound"} onEdit={() => go(1)}>
+                  {s.pet.sounds.length ? (
+                    <p className="text-sm text-ink-soft">
+                      &ldquo;{s.pet.sounds[0].title}&rdquo; will be engraved as a waveform, with a QR code that plays it.
+                    </p>
+                  ) : (
+                    <p className="text-sm text-ink-mute">No recording yet. You can add one now or later from your memory page; we&apos;ll engrave it as long as it arrives before you approve the design.</p>
+                  )}
                 </Summary>
                 <Summary title="Their story" onEdit={() => go(1)}>
                   {Object.values(s.story).some((v) => v?.trim()) ? (
@@ -779,7 +798,7 @@ export function CreateWizard({
         {/* Sidebar */}
         <aside className="hidden lg:block">
           <div className="sticky top-36 space-y-5">
-            <StoryCard name={s.pet.petName} animal={s.pet.animalType} breed={s.pet.breed} age={s.pet.petAge} cover={cover} story={s.story} />
+            <StoryCard name={s.pet.petName} animal={s.pet.animalType} breed={s.pet.breed} age={s.pet.petAge} cover={cover} story={s.story} peaks={s.pet.sounds[0]?.peaks} />
             {product && (
               <div className="rounded-[1.25rem] bg-paper p-5 shadow-[0_0_0_1px_var(--color-line)]">
                 <p className="text-sm text-ink-mute">Your keepsake</p>

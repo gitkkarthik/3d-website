@@ -84,6 +84,15 @@ export async function createOrder(userId: string, draftToken: string | null, inp
       if (dup[0]) return { order: dup[0], duplicate: true };
       throw new OrderError("Some photos couldn't be found. Please re-upload them and try again.");
     }
+    const soundIds = input.pet.soundIds ?? [];
+    if (soundIds.length) {
+      const sounds = await tx
+        .select({ id: schema.uploads.id })
+        .from(schema.uploads)
+        .where(and(inArray(schema.uploads.id, soundIds), eq(schema.uploads.kind, "PET_SOUND"), isNull(schema.uploads.orderId), ownership))
+        .for("update");
+      if (sounds.length !== new Set(soundIds).size) throw new OrderError("A recording couldn't be found. Please add it again.");
+    }
 
     let inserted: Order | undefined;
     for (let attempt = 0; attempt < 3 && !inserted; attempt++) {
@@ -146,9 +155,13 @@ export async function createOrder(userId: string, draftToken: string | null, inp
         .set({ orderId: inserted.id, ownerUserId: userId, draftToken: null, sortOrder: i, caption: isOwner ? "owner" : null })
         .where(eq(schema.uploads.id, id));
     }
+    for (const [i, id] of soundIds.entries()) {
+      await tx.update(schema.uploads).set({ orderId: inserted.id, ownerUserId: userId, draftToken: null, sortOrder: i }).where(eq(schema.uploads.id, id));
+    }
     if (inserted.wantsMemoryPage) {
       await tx.insert(schema.memoryPages).values({
         slug: randomToken(16),
+        qrToken: randomToken(12),
         userId,
         orderId: inserted.id,
         petName: inserted.petName,

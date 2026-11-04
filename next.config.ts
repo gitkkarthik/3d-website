@@ -19,6 +19,13 @@ const nextConfig: NextConfig = {
       { source: "/:path*", headers: securityHeaders },
       // Memory pages must never leak their secret URL via Referer, nor be indexed.
       {
+        source: "/q/:token*",
+        headers: [
+          { key: "Referrer-Policy", value: "no-referrer" },
+          { key: "X-Robots-Tag", value: "noindex, nofollow, noarchive" },
+        ],
+      },
+      {
         source: "/m/:slug*",
         headers: [
           { key: "Referrer-Policy", value: "no-referrer" },

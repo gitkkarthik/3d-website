@@ -107,3 +107,14 @@ export async function deleteMemoryPageAction(pageId: string, confirmName: string
     return { ok: false, error: "Couldn't delete. Please try again." };
   }
 }
+
+/** Pause or resume what happens when someone scans the keepsake. The code itself never changes. */
+export async function setQrEnabledAction(pageId: string, enabled: boolean): Promise<ActionResult> {
+  try {
+    const page = await ownedPage(pageId);
+    await db.update(schema.memoryPages).set({ qrEnabled: !!enabled, updatedAt: new Date() }).where(eq(schema.memoryPages.id, page.id));
+    return { ok: true, message: enabled ? "Scanning is on." : "Scanning is paused. The keepsake shows a gentle 'resting' message." };
+  } catch {
+    return { ok: false, error: "Couldn't update. Please try again." };
+  }
+}

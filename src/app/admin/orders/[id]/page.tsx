@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { eq, inArray } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
+import { isLocalUrl, scanUrl } from "@/lib/qr";
 import { db, schema } from "@/lib/db";
 import { getOrderDetail } from "@/lib/orders";
 import { canTransition, MANUAL_TRANSITIONS, STATUS_META } from "@/lib/lifecycle";
@@ -24,6 +25,9 @@ export default async function AdminOrderPage({ params }: { params: Promise<{ id:
   if (!d) notFound();
   const { order: o, photos, previews, events, payments, memory } = d;
   const [customer] = await db.select().from(schema.users).where(eq(schema.users.id, o.userId));
+  const sounds = await db.select().from(schema.uploads).where(and(eq(schema.uploads.orderId, o.id), eq(schema.uploads.kind, "PET_SOUND"))).orderBy(schema.uploads.sortOrder);
+  const [qrPage] = memory ? await db.select({ qrToken: schema.memoryPages.qrToken, qrEnabled: schema.memoryPages.qrEnabled }).from(schema.memoryPages).where(eq(schema.memoryPages.id, memory.id)) : [];
+  const memoryVoiceNotes = memory ? (await db.select({ id: schema.uploads.id }).from(schema.uploads).where(and(eq(schema.uploads.memoryPageId, memory.id), eq(schema.uploads.kind, "MEMORY_AUDIO")))).length : 0;
   const actorIds = [...new Set(events.map((e) => e.actorUserId).filter(Boolean))] as string[];
   const actors = actorIds.length ? await db.select({ id: schema.users.id, name: schema.users.name, role: schema.users.role }).from(schema.users).where(inArray(schema.users.id, actorIds)) : [];
   const actorName = (uid: string | null) => {
@@ -122,6 +126,48 @@ export default async function AdminOrderPage({ params }: { params: Promise<{ id:
                   ))
               )}
             </div>
+          </section>
+
+          {/* Sound & engraving */}
+          <section className="card p-5 sm:p-6">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <h2 className="font-display text-xl">Sound &amp; engraving</h2>
+              <a href={`/api/admin/engraving/${o.id}`} className="btn btn-primary btn-sm">
+                Download engraving file (SVG)
+              </a>
+            </div>
+            {sounds.length === 0 ? (
+              <p className="mt-3 text-sm text-ink-mute">
+                No recording with the order.{" "}
+                {memoryVoiceNotes > 0 ? `The customer has added ${memoryVoiceNotes} voice note(s) on their memory page; the first is used for the engraving.` : "Ask the customer for one before finalising the design; it can be added from their memory page."}
+              </p>
+            ) : (
+              <ul className="mt-4 space-y-3">
+                {sounds.map((snd, i) => (
+                  <li key={snd.id} className="rounded-xl bg-sand/50 p-3 text-sm">
+                    <p className="mb-2 font-medium">
+                      {i === 0 ? "Engraved · " : ""}
+                      {snd.caption ?? "Recording"} {snd.durationSec ? <span className="text-ink-mute">· {snd.durationSec}s</span> : null}
+                    </p>
+                    <audio controls preload="none" src={`/api/files/${snd.id}`} className="w-full" />
+                  </li>
+                ))}
+              </ul>
+            )}
+            {qrPage?.qrToken && (
+              <p className="mt-4 text-sm text-ink-soft">
+                QR points to{" "}
+                <a className="underline" href={scanUrl(qrPage.qrToken)} target="_blank" rel="noreferrer">
+                  {scanUrl(qrPage.qrToken)}
+                </a>
+                {!qrPage.qrEnabled && " (scanning paused by the customer)"}
+              </p>
+            )}
+            {isLocalUrl() && (
+              <p className="mt-2 rounded-xl bg-[#fbeee6] p-3 text-sm text-clay">
+                APP_URL is set to a local address. Set it to your real domain before engraving, or the printed QR won&apos;t work for customers.
+              </p>
+            )}
           </section>
 
           {/* Previews */}

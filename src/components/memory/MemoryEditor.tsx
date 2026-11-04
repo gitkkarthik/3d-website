@@ -3,7 +3,8 @@
 import { useRouter } from "next/navigation";
 import { useRef, useState, useTransition } from "react";
 import { uploadOne } from "@/components/wizard/PhotoUploader";
-import { deleteMemoryPageAction, resetLinkAction, saveMemoryPageAction, setVisibilityAction } from "@/app/(site)/account/memories/actions";
+import { analyseAudio } from "@/lib/audio-client";
+import { deleteMemoryPageAction, resetLinkAction, saveMemoryPageAction, setQrEnabledAction, setVisibilityAction } from "@/app/(site)/account/memories/actions";
 import type { MemoryEntry, SpecialDate, VideoLink } from "@/lib/db/schema";
 
 type Media = { id: string; kind: string; mimeType: string; caption: string | null };
@@ -20,6 +21,9 @@ type Page = {
   profileUploadId: string | null;
   visibility: "PRIVATE" | "LINK";
   isMemorial: boolean;
+  qrEnabled: boolean;
+  qrUrl: string | null;
+  qrSvg: string | null;
 };
 
 export function MemoryEditor({ page, media: initialMedia, origin }: { page: Page; media: Media[]; origin: string }) {
@@ -53,7 +57,13 @@ export function MemoryEditor({ page, media: initialMedia, origin }: { page: Page
     for (const file of Array.from(files)) {
       setUploading(`${file.name || "recording"}…`);
       try {
-        const u = await uploadOne(file, kind, () => {}, { memoryPageId: page.id, ...(caption ? { caption } : {}) });
+        let extra: Record<string, string> = {};
+        if (kind === "MEMORY_AUDIO") {
+          // Draw the real waveform (and let it be engraved if it's their first sound).
+          const a = await analyseAudio(file).catch(() => null);
+          if (a) extra = { waveform: JSON.stringify(a.peaks), duration: String(a.duration) };
+        }
+        const u = await uploadOne(file, kind, () => {}, { memoryPageId: page.id, ...(caption ? { caption } : {}), ...extra });
         setMedia((m) => [...m, { id: u.id, kind, mimeType: file.type, caption: caption ?? null }]);
       } catch (e) {
         setUploadErr((e as Error).message);
@@ -82,6 +92,9 @@ export function MemoryEditor({ page, media: initialMedia, origin }: { page: Page
 
   return (
     <div className="space-y-8">
+      {/* The keepsake's QR code */}
+      {page.qrUrl && page.qrSvg && <QrPanel pageId={page.id} url={page.qrUrl} svg={page.qrSvg} enabled={page.qrEnabled} petName={page.petName} />}
+
       {/* Privacy */}
       <section className="rounded-[1.25rem] bg-sage-soft/70 p-6">
         <h2 className="text-xl">Who can see this page</h2>
@@ -303,6 +316,16 @@ export function MemoryEditor({ page, media: initialMedia, origin }: { page: Page
         </div>
       </div>
 
+      <section className="card flex flex-col gap-3 p-6 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h2 className="text-xl">Download everything</h2>
+          <p className="mt-1 text-sm text-ink-soft">Every photo, recording and video, plus their story, in one file. It&apos;s yours, always.</p>
+        </div>
+        <a href={`/api/memories/${page.id}/export`} className="btn btn-ghost btn-sm shrink-0">
+          Download (.zip)
+        </a>
+      </section>
+
       <DangerZone pageId={page.id} petName={page.petName} />
     </div>
   );
@@ -428,6 +451,51 @@ function DangerZone({ pageId, petName }: { pageId: string; petName: string }) {
         </form>
       )}
       {msg && <p className="mt-2 text-sm text-[#a3402c]">{msg}</p>}
+    </section>
+  );
+}
+
+function QrPanel({ pageId, url, svg, enabled, petName }: { pageId: string; url: string; svg: string; enabled: boolean; petName: string }) {
+  const [on, setOn] = useState(enabled);
+  const [pending, start] = useTransition();
+  const [msg, setMsg] = useState<string | null>(null);
+  return (
+    <section className="overflow-hidden rounded-[1.25rem] bg-night p-6 text-ivory">
+      <div className="flex flex-col gap-6 sm:flex-row">
+        <div className="mx-auto w-40 shrink-0 rounded-2xl bg-ivory p-3 sm:mx-0" dangerouslySetInnerHTML={{ __html: svg }} aria-label={`QR code for ${petName}'s keepsake`} role="img" />
+        <div className="min-w-0">
+          <h2 className="text-xl">The code on {petName}&apos;s keepsake</h2>
+          <p className="mt-1 text-sm leading-relaxed text-white/65">
+            This is engraved on the base. Anyone who scans it hears {petName}&apos;s sound and sees this page, without needing your private link. It never expires and there&apos;s no subscription.
+          </p>
+          <label className="mt-4 flex items-center gap-3 text-sm">
+            <input
+              type="checkbox"
+              className="h-4 w-4 accent-[#e7c3a5]"
+              checked={on}
+              onChange={(e) => {
+                const v = e.target.checked;
+                setOn(v); // optimistic; rolled back if the save fails
+                start(async () => {
+                  const r = await setQrEnabledAction(pageId, v);
+                  if (!r.ok) setOn(!v);
+                  setMsg(r.ok ? (r.message ?? null) : r.error);
+                });
+              }}
+            />
+            Scanning the keepsake opens this page
+          </label>
+          {msg && <p className="mt-2 text-xs text-white/60">{msg}</p>}
+          <div className="mt-4 flex flex-wrap gap-2">
+            <a href={url} className="btn btn-sm bg-ivory text-night hover:bg-white">
+              Open as a scanner sees it
+            </a>
+            <a href={`data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`} download={`${petName}-qr.svg`} className="btn btn-sm text-ivory ring-1 ring-white/25">
+              Download QR
+            </a>
+          </div>
+        </div>
+      </div>
     </section>
   );
 }

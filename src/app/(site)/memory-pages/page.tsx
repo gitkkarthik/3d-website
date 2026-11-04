@@ -4,7 +4,7 @@ import { MemoryPreview } from "@/components/home/MemoryPreview";
 
 export const metadata: Metadata = {
   title: "Digital memory pages for your pet",
-  description: "A private, elegant page for your pet's photos, videos, voice recordings and stories. Included with the Forever, Together and Memorial editions. Never public or searchable.",
+  description: "A private, elegant page for your pet's photos, videos, voice recordings and stories. Included with every keepsake and opened by the QR code on its base. Never public or searchable.",
   alternates: { canonical: "/memory-pages" },
 };
 
@@ -18,7 +18,7 @@ export default function MemoryPagesInfo() {
             The keepsake you hold. <em className="italic-soft text-clay">The memories you keep.</em>
           </h1>
           <p className="mt-6 max-w-xl text-lg leading-relaxed text-ink-soft">
-            Every Forever, Together and Memorial edition comes with a private page that lives alongside the figurine: a quiet home for their photos, videos, voice
+            Every keepsake comes with a private page that lives alongside the figurine, opened by the QR code on its base: a quiet home for their photos, videos, voice
             recordings and the stories you never want to forget.
           </p>
           <Link href="/create" className="btn btn-primary mt-8">

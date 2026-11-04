@@ -17,7 +17,7 @@ export default async function AdminMemories() {
       <h1 className="text-3xl">Memory pages</h1>
       <p className="mt-1 text-ink-soft">Customer-owned and private by default. Only open or delete a page when a customer asks you to.</p>
       {pages.length === 0 ? (
-        <div className="card mt-6 p-10 text-center text-ink-soft">No memory pages yet. They&apos;re created with Forever, Together and Memorial orders.</div>
+        <div className="card mt-6 p-10 text-center text-ink-soft">No memory pages yet. One is created with every order.</div>
       ) : (
         <div className="card mt-6 overflow-x-auto">
           <table className="w-full min-w-[720px] text-left text-sm">

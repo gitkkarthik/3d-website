@@ -2,6 +2,22 @@
 
 export const FAQS: { q: string; a: string }[] = [
   {
+    q: "How does the sound on the keepsake work?",
+    a: "Send us a recording: a bark, a purr, a WhatsApp voice note, even you calling their name. We engrave its waveform into the base next to a small QR code. Point any phone camera at the code and their sound plays, with their photos and story. No app needed.",
+  },
+  {
+    q: "Will the QR code keep working? Is there a subscription?",
+    a: "There's no subscription, ever. The code is part of what you buy, and it doesn't stop working because a plan lapsed. You can also download every photo and recording from your memory page at any time, so your memories never depend on us.",
+  },
+  {
+    q: "Who can hear it when the code is scanned?",
+    a: "Anyone holding the keepsake, which is the point: family, friends, guests. The page is never listed or searchable. You can pause scanning whenever you like, and your separate private link can be shared or kept to yourself.",
+  },
+  {
+    q: "I don't have a recording. Can I still order?",
+    a: "Of course. The sound is optional, and you can add one later from your memory page, as long as it reaches us before you approve the design. Many people find a forgotten voice note or video once they start looking; we can use the audio from a video too.",
+  },
+  {
     q: "How do you make a figurine that actually looks like my pet?",
     a: "A real artist studies your photos and the details you share (markings, ear shape, the way they sit) and sculpts a 3D design by hand. We send you a preview to approve before anything is printed. If something isn't right, tell us and we'll revise it.",
   },
@@ -23,7 +39,7 @@ export const FAQS: { q: string; a: string }[] = [
   },
   {
     q: "What is a digital memory page?",
-    a: "A private, elegant page for your pet's photos, videos, voice recordings and stories, included with the Forever, Together and Memorial editions. It's private by default; you choose whether to share it with a link. It's never listed or searchable.",
+    a: "A private, elegant page for your pet's photos, videos, voice recordings and stories, included with every keepsake. Scanning the QR on the base opens it; your separate private link is yours to share or keep. It's never listed or searchable.",
   },
   {
     q: "Can I cancel or get a refund?",

@@ -7,6 +7,7 @@ import { db, schema } from "@/lib/db";
 import { requireUserPage } from "@/lib/auth";
 import { getMemoryMedia } from "@/lib/memories";
 import { MemoryEditor } from "@/components/memory/MemoryEditor";
+import { qrSvg, scanUrl } from "@/lib/qr";
 
 export const metadata: Metadata = { title: "Edit memory page", robots: { index: false } };
 export const dynamic = "force-dynamic";
@@ -47,6 +48,9 @@ export default async function EditMemoryPage({ params }: { params: Promise<{ id:
             profileUploadId: page.profileUploadId,
             visibility: page.visibility,
             isMemorial: page.isMemorial,
+            qrEnabled: page.qrEnabled,
+            qrUrl: page.qrToken ? scanUrl(page.qrToken) : null,
+            qrSvg: page.qrToken ? await qrSvg(scanUrl(page.qrToken)) : null,
           }}
           media={media.map((m) => ({ id: m.id, kind: m.kind, mimeType: m.mimeType, caption: m.caption }))}
         />

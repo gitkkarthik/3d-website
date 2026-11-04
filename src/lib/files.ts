@@ -39,6 +39,8 @@ export function sniff(buf: Buffer): Sniffed | null {
 
 export const KIND_FAMILY: Record<UploadKind, Family[]> = {
   PET_PHOTO: ["image"],
+  // Recorded in the browser (webm/mp4 containers) or uploaded from voice memos / WhatsApp (ogg, m4a, mp3).
+  PET_SOUND: ["audio", "video"],
   PREVIEW: ["image"],
   MEMORY_IMAGE: ["image"],
   MEMORY_VIDEO: ["video"],
@@ -73,16 +75,17 @@ export async function processAndStore(buf: Buffer, kind: UploadKind): Promise<St
     throw new UploadError(
       kind === "MEMORY_VIDEO"
         ? "Please upload an MP4, MOV or WebM video."
-        : kind === "MEMORY_AUDIO"
+        : kind === "MEMORY_AUDIO" || kind === "PET_SOUND"
           ? "Please upload an MP3, M4A, WAV, OGG or WebM recording."
           : "Please upload a JPG, PNG, WebP or HEIC photo.",
     );
   }
-  const limit = LIMITS[s.family];
+  const limit = kind === "PET_SOUND" ? LIMITS.audio : LIMITS[s.family];
   if (buf.length > limit) throw new UploadError(`That file is larger than ${Math.round(limit / 1048576)} MB.`);
 
   // Effective type for webm audio recordings.
-  const mime = kind === "MEMORY_AUDIO" && s.mime === "video/webm" ? "audio/webm" : s.mime;
+  const isAudioKind = kind === "MEMORY_AUDIO" || kind === "PET_SOUND";
+  const mime = isAudioKind && s.mime === "video/webm" ? "audio/webm" : isAudioKind && s.mime === "video/mp4" ? "audio/mp4" : s.mime;
   const id = randomUUID();
   const prefix = `${kind.toLowerCase()}/${id.slice(0, 2)}/${id}`;
   const store = storage();

@@ -41,6 +41,7 @@ export const optionKindEnum = pgEnum("option_kind", ["POSE", "BASE"]);
 
 export const uploadKindEnum = pgEnum("upload_kind", [
   "PET_PHOTO",
+  "PET_SOUND",
   "PREVIEW",
   "MEMORY_IMAGE",
   "MEMORY_VIDEO",
@@ -274,6 +275,9 @@ export const uploads = pgTable(
     height: integer("height"),
     originalName: text("original_name"),
     caption: text("caption"),
+    // Normalised peak amplitudes (0–1) for audio: drives the on-screen waveform and the engraving.
+    waveform: jsonb("waveform").$type<number[]>(),
+    durationSec: integer("duration_sec"),
     sortOrder: integer("sort_order").notNull().default(0),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
@@ -401,6 +405,10 @@ export const memoryPages = pgTable("memory_pages", {
   message: text("message"),
   isMemorial: boolean("is_memorial").notNull().default(false),
   visibility: visibilityEnum("visibility").notNull().default("PRIVATE"),
+  // The code engraved on the keepsake. Permanent (it's physically engraved), separate from the
+  // share link so the customer can rotate their link without breaking the object in their home.
+  qrToken: text("qr_token").unique(),
+  qrEnabled: boolean("qr_enabled").notNull().default(true),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });

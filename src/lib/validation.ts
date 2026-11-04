@@ -16,6 +16,8 @@ export const petSchema = z.object({
   breed: z.string().trim().min(1, "Tell us their breed, or 'Indie' / 'Not sure'.").max(60),
   petAge: optionalText(30),
   photoIds: z.array(z.uuid()).min(3, "Please add at least 3 photos.").max(5, "Up to 5 photos, please."),
+  // Their real sound (bark, purr, voice note). The first one is engraved as a waveform.
+  soundIds: z.array(z.uuid()).max(3, "Up to 3 recordings, please.").default([]),
 });
 
 export const storySchema = z.object({

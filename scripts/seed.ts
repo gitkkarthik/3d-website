@@ -39,6 +39,7 @@ const seeds: Seed[] = [
       story:
         "Every pet has a thing. The head tilt when you say 'walk'. The way they sleep with one paw over their nose. The Personality Edition is about that thing, captured small enough to sit on your desk and big enough to make you smile every time you look up.",
       includes: [
+        "Their real sound engraved as a waveform, with a QR code: scan it and hear them",
         "Hand-painted miniature of your pet",
         "Signature pose or favourite activity",
         "Personalised base engraved with their name",
@@ -47,7 +48,7 @@ const seeds: Seed[] = [
       ],
       leadTimeMinDays: 10,
       leadTimeMaxDays: 14,
-      includesMemoryPage: false,
+      includesMemoryPage: true,
       renderKey: "dog-play",
       sortOrder: 1,
       seoTitle: "Personalised Dog & Cat Figurine | Custom Pet Miniature India",
@@ -75,6 +76,7 @@ const seeds: Seed[] = [
       story:
         "The Forever Edition is for the pet whose face you'd recognise anywhere. Our artists spend the most time here: matching coat colours to your photos, the exact shape of an ear, the patch over one eye. It comes with a private memory page, so the stories, videos and sounds live alongside the keepsake.",
       includes: [
+        "Their real sound engraved as a waveform, with a QR code: scan it and hear them",
         "Higher-detail hand-painted figurine",
         "Premium display base",
         "Engraved name and personal message",
@@ -113,6 +115,7 @@ const seeds: Seed[] = [
       story:
         "Some bonds are best shown, not described. The Together Edition captures the two of you (or the whole family) in the pose that feels like home. It's the gift people keep on the bedside table.",
       includes: [
+        "Their real sound engraved as a waveform, with a QR code: scan it and hear them",
         "Pet and owner sculpted together",
         "Customised pose that tells your story",
         "Personalised engraved base",
@@ -157,6 +160,7 @@ const seeds: Seed[] = [
       story:
         "Losing a pet is losing family. This edition is made slowly and carefully, with a calm, peaceful pose and soft finish. You'll talk to the same artist throughout, and nothing is made until you feel it's right. Many families choose their pet asleep in their favourite spot.",
       includes: [
+        "Their real sound engraved as a waveform, with a QR code: scan it and hear them",
         "Personalised memorial figurine",
         "Peaceful pose of your choosing",
         "Engraved name, meaningful date and message",

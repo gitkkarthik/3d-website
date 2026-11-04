@@ -7,7 +7,10 @@ import sharp from "sharp";
 import { mkdir } from "node:fs/promises";
 
 const BASE = process.env.RENDER_BASE ?? "http://localhost:3001";
+// Every edition now carries their sound (waveform) and a scannable QR on the base.
+const SOUND = { wave: "1", qr: "https://pawsome.in/memory-pages" };
 const shots: Record<string, Record<string, string>> = {
+  "hold": { figure: "dog-sitting", coat: "fawn", base: "walnut", name: "Bruno", yaw: "0.35" },
   "personality": { figure: "dog-play", coat: "tuxedo", base: "oak", name: "Bruno" },
   "personality-2": { figure: "dog-play", coat: "tuxedo", base: "oak", name: "Bruno", yaw: "-0.9" },
   "forever": { figure: "dog-sitting", coat: "fawn", base: "walnut", name: "Laddoo", line2: "Good boy, always" },
@@ -28,7 +31,7 @@ const page = await browser.newPage({ viewport: { width: 1000, height: 1000 }, de
 const only = process.argv.slice(2);
 for (const [name, q] of Object.entries(shots)) {
   if (only.length && !only.includes(name)) continue;
-  await page.goto(`${BASE}/render?${new URLSearchParams({ ...q, bg: "transparent" })}`);
+  await page.goto(`${BASE}/render?${new URLSearchParams({ ...SOUND, ...q, bg: "transparent" })}`, { timeout: 120_000 });
   await page.waitForSelector('body[data-rendered="1"]', { timeout: 90_000 });
   const png = await page.screenshot({ omitBackground: true, timeout: 120_000 });
   await sharp(png).trim({ threshold: 1 }).extend({ top: 40, bottom: 40, left: 40, right: 40, background: { r: 0, g: 0, b: 0, alpha: 0 } }).resize({ width: 1100, withoutEnlargement: true }).webp({ quality: 86, alphaQuality: 90 }).toFile(`public/renders/${name}.webp`);

@@ -29,6 +29,8 @@ export function SiteHeader({ signedIn, isAdmin, unread }: { signedIn: boolean; i
   }, [open]);
 
   const inWizard = pathname.startsWith("/create");
+  // On the homepage the header floats over the dark hero until you scroll.
+  const onDark = pathname === "/" && !scrolled && !open;
 
   return (
     <header
@@ -37,23 +39,23 @@ export function SiteHeader({ signedIn, isAdmin, unread }: { signedIn: boolean; i
       }`}
     >
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
-        <Wordmark />
+        <Wordmark light={onDark} />
         <nav className="hidden items-center gap-8 md:flex" aria-label="Main">
           {NAV.map((n) => (
-            <Link key={n.href} href={n.href} className="text-[0.92rem] text-ink-soft transition-colors hover:text-ink">
+            <Link key={n.href} href={n.href} className={`text-[0.92rem] transition-colors ${onDark ? "text-white/70 hover:text-white" : "text-ink-soft hover:text-ink"}`}>
               {n.label}
             </Link>
           ))}
         </nav>
         <div className="flex items-center gap-2">
           {isAdmin && (
-            <Link href="/admin" className="hidden text-sm text-ink-soft hover:text-ink sm:inline">
+            <Link href="/admin" className={`hidden text-sm sm:inline ${onDark ? "text-white/70 hover:text-white" : "text-ink-soft hover:text-ink"}`}>
               Studio
             </Link>
           )}
           <Link
             href={signedIn ? "/account" : "/signin"}
-            className="relative hidden h-10 items-center rounded-full px-3 text-[0.92rem] text-ink-soft hover:text-ink sm:inline-flex"
+            className={`relative hidden h-10 items-center rounded-full px-3 text-[0.92rem] sm:inline-flex ${onDark ? "text-white/70 hover:text-white" : "text-ink-soft hover:text-ink"}`}
           >
             {signedIn ? "My keepsakes" : "Sign in"}
             {unread > 0 && (
@@ -63,7 +65,7 @@ export function SiteHeader({ signedIn, isAdmin, unread }: { signedIn: boolean; i
             )}
           </Link>
           {!inWizard && (
-            <Link href="/create" className="btn btn-primary btn-sm hidden sm:inline-flex">
+            <Link href="/create" className={`btn btn-sm hidden sm:inline-flex ${onDark ? "bg-ivory text-night hover:bg-white" : "btn-primary"}`}>
               Create keepsake
             </Link>
           )}
@@ -76,8 +78,8 @@ export function SiteHeader({ signedIn, isAdmin, unread }: { signedIn: boolean; i
             onClick={() => setOpen((v) => !v)}
           >
             <span className="relative block h-3 w-5">
-              <span className={`absolute left-0 top-0 h-[1.5px] w-5 bg-ink transition-transform duration-300 ${open ? "translate-y-[5px] rotate-45" : ""}`} />
-              <span className={`absolute bottom-0 left-0 h-[1.5px] w-5 bg-ink transition-transform duration-300 ${open ? "-translate-y-[6px] -rotate-45" : ""}`} />
+              <span className={`absolute left-0 top-0 h-[1.5px] w-5 ${onDark ? "bg-ivory" : "bg-ink"} transition-transform duration-300 ${open ? "translate-y-[5px] rotate-45" : ""}`} />
+              <span className={`absolute bottom-0 left-0 h-[1.5px] w-5 ${onDark ? "bg-ivory" : "bg-ink"} transition-transform duration-300 ${open ? "-translate-y-[6px] -rotate-45" : ""}`} />
             </span>
           </button>
         </div>

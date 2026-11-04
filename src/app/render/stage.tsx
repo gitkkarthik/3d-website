@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import LazyKeepsake from "@/components/three/LazyKeepsake";
+import { sampleWaveform } from "@/lib/audio-client";
 import type { FigureKey } from "@/components/three/Figurines";
 import type { BaseStyle } from "@/components/three/baseStyle";
 
@@ -29,6 +30,9 @@ export default function RenderStage(p: Record<string, string>) {
         framing="card"
         preserveDrawingBuffer
         yaw={Number(p.yaw ?? 0)}
+        peaks={p.wave === "1" ? sampleWaveform() : null}
+        qr={p.qr ?? null}
+        stage={p.stage === "dark" ? "dark" : "light"}
         onReady={() => setReady(true)}
       />
     </div>

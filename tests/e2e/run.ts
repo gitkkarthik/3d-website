@@ -10,6 +10,7 @@ import { chromium, type Browser, type BrowserContext, type Page } from "playwrig
 import sharp from "sharp";
 import { createHmac, randomUUID } from "node:crypto";
 import { mkdir, writeFile } from "node:fs/promises";
+import { execSync } from "node:child_process";
 import { Pool } from "pg";
 
 const BASE = process.env.E2E_BASE ?? "http://localhost:3001";
@@ -51,6 +52,10 @@ async function makeFixtures() {
   await writeFile("tests/e2e/fixtures/not-an-image.jpg", "this is plain text pretending to be a jpeg");
   await writeFile("tests/e2e/fixtures/evil.svg", `<svg xmlns="http://www.w3.org/2000/svg"><script>alert(1)</script></svg>`);
   await sharp({ create: { width: 120, height: 120, channels: 3, background: "#c99" } }).jpeg().toFile("tests/e2e/fixtures/tiny.jpg");
+  // A stand-in "bark": bursts of filtered noise, as an AAC voice-note file.
+  execSync(
+    `ffmpeg -loglevel error -y -f lavfi -i "anoisesrc=d=2.4:c=pink:a=0.6" -af "volume='if(lt(mod(t,0.6),0.18),1,if(lt(mod(t,0.6),0.25),0.3,0.02))':eval=frame,highpass=f=300,lowpass=f=2500" -c:a aac tests/e2e/fixtures/bark.m4a`,
+  );
   return files;
 }
 
@@ -143,6 +148,10 @@ async function main() {
 
     await a.getByRole("button", { name: /Continue/ }).click();
     await a.getByRole("heading", { name: /their story/i }).waitFor();
+    // Their sound: upload a voice note; it's analysed in the browser and uploaded with its waveform.
+    await a.locator('input[type=file][accept^="audio"]').first().setInputFiles("tests/e2e/fixtures/bark.m4a");
+    await a.getByText("Bruno's sound", { exact: true }).first().waitFor({ timeout: 30000 });
+    check("sound: voice note added in the wizard with its waveform", true);
     await a.locator("#smile").fill("He sneezes every single time he's excited to see us.");
     await a.locator("#toy").fill("A one-eared green crocodile called Mr Croc");
     await a.locator("#nickname").fill("Laddoo, Chotu");
@@ -413,6 +422,43 @@ async function main() {
   });
 
   /* ───────────── Memory page privacy ───────────── */
+  await step("sound + QR", async () => {
+    const snd = (await db.query("select id, waveform, duration_sec from uploads where order_id=$1 and kind='PET_SOUND'", [orderId])).rows;
+    check("sound: recording attached to the order with waveform + duration", snd.length === 1 && Array.isArray(snd[0].waveform) && snd[0].waveform.length >= 8 && snd[0].duration_sec >= 1, JSON.stringify(snd[0]?.duration_sec));
+    const mp = (await db.query("select id, qr_token from memory_pages where order_id=$1", [orderId])).rows[0];
+    check("qr: memory page has a permanent QR token", !!mp?.qr_token && mp.qr_token.length >= 16);
+    const scanner = await anon.newPage();
+    const r = await scanner.goto(`${BASE}/q/${mp.qr_token}`);
+    check("qr: scanning opens the player even though the private link isn't shared", r?.status() === 200 && (await scanner.getByRole("button", { name: /Play/ }).count()) > 0);
+    check("qr: scan page is noindex", (r?.headers()["x-robots-tag"] ?? "").includes("noindex"));
+    await scanner.waitForTimeout(1200);
+    await shot(scanner, "13-qr-player", false);
+    check("qr: scanner can play the sound", (await api(anon, `/api/files/${snd[0].id}?q=${mp.qr_token}`)).status === 200);
+    check("qr: sound not reachable without the code", (await api(anon, `/api/files/${snd[0].id}`)).status === 404);
+    check("qr: a wrong code fails", (await api(anon, `/api/files/${snd[0].id}?q=${mp.qr_token.slice(0, -2)}xx`)).status === 404);
+    const otherPhoto = (await db.query("select id from uploads where order_id=$1 and kind='PET_PHOTO' order by sort_order desc limit 1", [orderId])).rows[0].id;
+    check("qr: the code doesn't unlock the customer's other order photos", (await api(anon, `/api/files/${otherPhoto}?q=${mp.qr_token}`)).status === 404);
+    // Customer pauses scanning
+    await a.goto(`${BASE}/account/memories/${mp.id}`);
+    await a.getByLabel("Scanning the keepsake opens this page").uncheck();
+    await a.getByText(/Scanning is paused/).waitFor();
+    const r2 = await scanner.goto(`${BASE}/q/${mp.qr_token}`);
+    check("qr: paused scanning shows a gentle resting page", r2?.status() === 200 && (await scanner.getByText("This keepsake is resting quietly.").count()) === 1);
+    check("qr: paused scanning blocks the files", (await api(anon, `/api/files/${snd[0].id}?q=${mp.qr_token}`)).status === 404);
+    await a.getByLabel("Scanning the keepsake opens this page").check();
+    await a.getByText("Scanning is on.").waitFor();
+    // Engraving file for production
+    const eng = await ctxAdmin.request.get(`${BASE}/api/admin/engraving/${orderId}`);
+    const svg = await eng.text();
+    check("engraving: admin gets SVG with name, waveform and QR", eng.status() === 200 && svg.includes(">Bruno<") && (svg.match(/<rect /g) ?? []).length >= 8 && svg.includes("<path d="));
+    check("engraving: customers can't download it", (await api(ctxA, `/api/admin/engraving/${orderId}`)).status === 404);
+    // Download everything
+    const zip = await ctxA.request.get(`${BASE}/api/memories/${mp.id}/export`);
+    const zb = await zip.body();
+    check("export: owner downloads a zip of everything", zip.status() === 200 && zb[0] === 0x50 && zb[1] === 0x4b);
+    check("export: other customers can't", (await api(ctxB, `/api/memories/${mp.id}/export`)).status === 404);
+  }, a);
+
   await step("memory pages", async () => {
     const mp = (await db.query("select id, slug from memory_pages where order_id=$1", [orderId])).rows[0];
     const anonPage = await anon.newPage();
