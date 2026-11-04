@@ -188,6 +188,16 @@ export function CreateWizard({
     requestAnimationFrame(() => topRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }));
   }
 
+  /** Bring the first problem into view, so a tap on Continue never looks like it did nothing. */
+  function revealFirstError() {
+    setTimeout(() => {
+      const el = document.querySelector<HTMLElement>("[aria-invalid='true'], [data-error='true'], [role='alert']");
+      if (!el) return;
+      el.scrollIntoView({ behavior: "smooth", block: "center" });
+      if (el.matches("input, textarea, select")) el.focus({ preventScroll: true });
+    }, 30);
+  }
+
   function validate(step: number): boolean {
     let r: { success: boolean; error?: import("zod").ZodError } = { success: true };
     if (step === 0) r = petSchema.safeParse({ ...s.pet, petAge: s.pet.petAge || undefined, photoIds: s.pet.photos.map((p) => p.id) });
@@ -195,10 +205,12 @@ export function CreateWizard({
     if (step === 2) {
       if (!product) {
         setErrors({ productSlug: "Choose the edition you'd like." });
+        revealFirstError();
         return false;
       }
       if (!variant) {
         setErrors({ variantId: "Choose a size." });
+        revealFirstError();
         return false;
       }
     }
@@ -208,11 +220,10 @@ export function CreateWizard({
       if (!s.personalise.poseOptionId) extra.poseOptionId = "Choose a pose.";
       if (!s.personalise.baseOptionId) extra.baseOptionId = "Choose a base.";
       if (product?.includesOwner && s.personalise.ownerPhotos.length === 0) extra.ownerPhotoIds = "Add at least one photo of you.";
-      if (product?.isMemorial && !s.personalise.importantDate) extra.importantDate = "Add a date that matters, if you'd like it engraved, or skip by choosing 'No date'.";
-      if (product?.isMemorial && s.personalise.importantDate === "none") delete extra.importantDate;
       const all = { ...(r.success ? {} : fieldErrors(r.error!)), ...extra };
       if (Object.keys(all).length) {
         setErrors(all);
+        revealFirstError();
         return false;
       }
       return true;
@@ -220,7 +231,7 @@ export function CreateWizard({
     if (step === 4) r = deliverySchema.safeParse(s.delivery);
     if (!r.success) {
       setErrors(fieldErrors(r.error!));
-      requestAnimationFrame(() => document.querySelector<HTMLElement>("[aria-invalid='true'], [data-error='true']")?.focus());
+      revealFirstError();
       return false;
     }
     return true;
@@ -566,6 +577,7 @@ export function CreateWizard({
                         engraving={s.personalise.engravedName || s.pet.petName || "Name"}
                         line2={s.personalise.importantDate && s.personalise.importantDate !== "none" ? formatDateShort(s.personalise.importantDate) : ""}
                         framing="wizard"
+                        autoRotate={false}
                       />
                       <span className="render-tag absolute left-3 top-3">Style sketch</span>
                     </div>
@@ -590,11 +602,6 @@ export function CreateWizard({
                     {memorial ? "A date that matters" : "Important date"} <span className="font-normal text-ink-mute">· optional</span>
                   </label>
                   <input id="importantDate" type="date" className="input" value={s.personalise.importantDate === "none" ? "" : s.personalise.importantDate} onChange={(e) => setPers({ importantDate: e.target.value })} aria-invalid={!!errors.importantDate} />
-                  {memorial && (
-                    <label className="mt-2 flex items-center gap-2 text-sm text-ink-soft">
-                      <input type="checkbox" checked={s.personalise.importantDate === "none"} onChange={(e) => setPers({ importantDate: e.target.checked ? "none" : "" })} /> No date, thank you
-                    </label>
-                  )}
                   <Err msg={errors.importantDate} />
                 </div>
                 {s.personalise.importantDate && s.personalise.importantDate !== "none" && (

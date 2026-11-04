@@ -156,7 +156,7 @@ export function MemoryEditor({ page, media: initialMedia, origin }: { page: Page
       <section className="card p-6">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <h2 className="text-xl">Photos</h2>
-          <FileButton label="Add photos" accept="image/jpeg,image/png,image/webp" multiple onFiles={(fl) => addFiles("MEMORY_IMAGE", fl)} />
+          <FileButton label="Add photos" accept="image/jpeg,image/png,image/webp,image/heic,image/heif,.heic,.heif" multiple onFiles={(fl) => addFiles("MEMORY_IMAGE", fl)} />
         </div>
         {images.length === 0 && !f.profileUploadId ? (
           <p className="mt-4 text-sm text-ink-mute">No photos yet. Add the ones you go back to again and again.</p>

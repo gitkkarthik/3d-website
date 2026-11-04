@@ -5,10 +5,34 @@ import { useRef, useState } from "react";
 export type UploadedPhoto = { id: string; preview?: string };
 type Pending = { key: string; preview: string; progress: number; error?: string; file: File };
 
-const ACCEPT = "image/jpeg,image/png,image/webp,image/heic,image/heif";
+const ACCEPT = "image/jpeg,image/png,image/webp,image/heic,image/heif,.heic,.heif";
 const MAX_MB = 15;
 
-export function uploadOne(file: File, kind: string, onProgress: (n: number) => void, extra: Record<string, string> = {}): Promise<{ id: string }> {
+/** True for iPhone/Mac HEIC/HEIF photos, judged by the file's own bytes (browsers often report no type). */
+async function looksHeic(file: File): Promise<boolean> {
+  if (/\.(heic|heif)$/i.test(file.name) || /image\/hei[cf]/i.test(file.type)) return true;
+  const head = new Uint8Array(await file.slice(0, 12).arrayBuffer());
+  const box = String.fromCharCode(...head.slice(4, 12));
+  return /^ftyp(heic|heix|heim|heis|hevc|mif1|msf1)/.test(box);
+}
+
+/**
+ * Our servers can't decode HEIC, so convert it to a high-quality JPEG in the browser first.
+ * The converter (~3 MB) only loads when someone actually picks a HEIC photo.
+ */
+export async function prepareImage(file: File): Promise<File> {
+  if (!(await looksHeic(file))) return file;
+  try {
+    const { heicTo } = await import("heic-to/next");
+    const jpeg = await heicTo({ blob: file, type: "image/jpeg", quality: 0.92 });
+    return new File([jpeg], file.name.replace(/\.(heic|heif)$/i, "") + ".jpg", { type: "image/jpeg" });
+  } catch {
+    throw new Error("We couldn't convert this HEIC photo. Try exporting it as JPG.");
+  }
+}
+
+export async function uploadOne(file: File, kind: string, onProgress: (n: number) => void, extra: Record<string, string> = {}): Promise<{ id: string }> {
+  if (kind === "PET_PHOTO" || kind === "MEMORY_IMAGE" || kind === "PREVIEW") file = await prepareImage(file);
   return new Promise((resolve, reject) => {
     const fd = new FormData();
     fd.append("kind", kind);
@@ -81,7 +105,9 @@ export function PhotoUploader({
       uploadOne(file, kind, (n) => setPending((p) => p.map((x) => (x.key === key ? { ...x, progress: n } : x))))
         .then((u) => {
           setPending((p) => p.filter((x) => x.key !== key));
-          onChange((prev) => [...prev, { id: u.id, preview }]);
+          // Browsers can't show HEIC, so use the server's converted thumbnail for those.
+          const showable = !/\.(heic|heif)$/i.test(file.name) && !/hei[cf]/i.test(file.type);
+          onChange((prev) => [...prev, { id: u.id, preview: showable ? preview : undefined }]);
         })
         .catch((e: Error) => setPending((p) => p.map((x) => (x.key === key ? { ...x, error: e.message } : x))));
     }

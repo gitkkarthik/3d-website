@@ -95,7 +95,7 @@ export function PreviewSender({ orderId, canSend }: { orderId: string; canSend: 
         <input
           ref={input}
           type="file"
-          accept="image/jpeg,image/png,image/webp"
+          accept="image/jpeg,image/png,image/webp,image/heic,image/heif,.heic,.heif"
           multiple
           className="sr-only"
           onChange={async (e) => {

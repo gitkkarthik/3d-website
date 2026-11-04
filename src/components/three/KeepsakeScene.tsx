@@ -95,7 +95,7 @@ function Plinth({ style, engraving, line2 }: { style: BaseStyle; engraving: stri
 const LOW: FigureKey[] = ["dog-sleeping", "cat-loaf"];
 
 function Rig({ framing, figure }: { framing: "hero" | "card" | "wizard"; figure: FigureKey }) {
-  const { camera } = useThree();
+  const { camera, invalidate } = useThree();
   useEffect(() => {
     const low = LOW.includes(figure);
     const dist = { hero: 8.6, card: 7.2, wizard: 7.6 }[framing] * (low ? 0.82 : 1);
@@ -103,7 +103,8 @@ function Rig({ framing, figure }: { framing: "hero" | "card" | "wizard"; figure:
     const target = new THREE.Vector3(0, low ? 0.3 : 0.72, 0);
     camera.position.copy(target.clone().add(dir.multiplyScalar(dist)));
     camera.lookAt(target);
-  }, [camera, framing, figure]);
+    invalidate();
+  }, [camera, framing, figure, invalidate]);
   return null;
 }
 
@@ -137,6 +138,8 @@ export default function KeepsakeScene({
   return (
     <Canvas
       shadows
+      // Without auto-rotation, only redraw when something changes (drag, name, base): kinder to phone batteries.
+      frameloop={autoRotate ? "always" : "demand"}
       dpr={[1, 2]}
       camera={{ fov: 28, near: 0.1, far: 50, position: [2.6, 1.9, 5.4] }}
       gl={{ antialias: true, alpha: true, preserveDrawingBuffer }}

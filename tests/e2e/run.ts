@@ -423,7 +423,7 @@ async function main() {
     check("memory: page sends noindex", (r2?.headers()["x-robots-tag"] ?? "").includes("noindex"));
     // Edit: upload a photo, set visibility
     await a.goto(`${BASE}/account/memories/${mp.id}`);
-    const input = a.locator('input[type="file"][accept="image/jpeg,image/png,image/webp"]');
+    const input = a.locator('input[type="file"][accept^="image/jpeg,image/png,image/webp"]');
     await input.setInputFiles(photos[2]);
     await a.locator('img[src*="v=thumb"]').first().waitFor({ timeout: 20000 });
     await a.locator("#m-story").fill("Bruno found us on a rainy July evening.\n\nHe never learned to fetch.");
