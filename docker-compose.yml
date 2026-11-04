@@ -1,5 +1,5 @@
 # Local database for development: `docker compose up -d`
-# Uses port 5433 so it won't clash with a Postgres you may already run on 5432.
+# Uses port 54329 on 127.0.0.1 so it never clashes with another Postgres (5432, 5433, Postgres.app…).
 services:
   db:
     image: postgres:16
@@ -9,7 +9,7 @@ services:
       POSTGRES_PASSWORD: pawsome
       POSTGRES_DB: pawsome
     ports:
-      - "5433:5432"
+      - "127.0.0.1:54329:5432"
     volumes:
       - pawsome-db:/var/lib/postgresql/data
 volumes:

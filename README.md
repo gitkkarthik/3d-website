@@ -80,7 +80,7 @@ Requirements: Node 20+, PostgreSQL 14+.
 ```bash
 npm install
 cp .env.example .env                     # set ADMIN_EMAIL, ADMIN_PASSWORD (DATABASE_URL matches docker-compose)
-docker compose up -d                     # local Postgres on port 5433 (or point DATABASE_URL at your own)
+docker compose up -d                     # local Postgres on 127.0.0.1:54329 (or point DATABASE_URL at your own)
 npm run db:migrate                       # apply migrations
 npm run db:seed                          # 4 editions with sizes/poses/bases (safe to re-run)
 npm run admin:create                     # creates/promotes ADMIN_EMAIL (password ≥ 12 chars)
