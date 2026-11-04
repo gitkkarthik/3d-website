@@ -6,7 +6,7 @@ import { chromium } from "playwright";
 import sharp from "sharp";
 import { mkdir } from "node:fs/promises";
 
-const BASE = process.env.RENDER_BASE ?? "http://localhost:3000";
+const BASE = process.env.RENDER_BASE ?? "http://localhost:3001";
 const shots: Record<string, Record<string, string>> = {
   "personality": { figure: "dog-play", coat: "tuxedo", base: "oak", name: "Bruno" },
   "personality-2": { figure: "dog-play", coat: "tuxedo", base: "oak", name: "Bruno", yaw: "-0.9" },

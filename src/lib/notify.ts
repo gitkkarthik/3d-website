@@ -2,7 +2,7 @@ import "server-only";
 import { eq } from "drizzle-orm";
 import { db, schema } from "./db";
 
-const APP_URL = () => process.env.APP_URL || "http://localhost:3000";
+const APP_URL = () => process.env.APP_URL || "http://localhost:3001";
 
 function escapeHtml(s: string) {
   return s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!);

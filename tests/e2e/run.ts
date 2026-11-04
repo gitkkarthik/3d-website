@@ -12,7 +12,7 @@ import { createHmac, randomUUID } from "node:crypto";
 import { mkdir, writeFile } from "node:fs/promises";
 import { Pool } from "pg";
 
-const BASE = process.env.E2E_BASE ?? "http://localhost:3000";
+const BASE = process.env.E2E_BASE ?? "http://localhost:3001";
 const OUT = "tests/e2e/screens";
 const ADMIN = { email: process.env.ADMIN_EMAIL!, password: process.env.ADMIN_PASSWORD! };
 const db = new Pool({ connectionString: process.env.DATABASE_URL });

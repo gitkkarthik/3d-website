@@ -84,7 +84,7 @@ createdb pawsome                         # or any Postgres database
 npm run db:migrate                       # apply migrations
 npm run db:seed                          # 4 editions with sizes/poses/bases (safe to re-run)
 npm run admin:create                     # creates/promotes ADMIN_EMAIL (password ≥ 12 chars)
-npm run dev                              # http://localhost:3000 — studio at /admin
+npm run dev                              # http://localhost:3001 — studio at /admin
 ```
 
 Other scripts: `npm run build && npm start` (production), `npm test` (unit), `npm run test:e2e` (needs a running server), `npm run renders` (regenerates `public/renders/*.webp` from the 3D scene; needs the dev server), `npm run db:generate` (new migration after schema changes).
